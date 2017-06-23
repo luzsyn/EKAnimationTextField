@@ -8,13 +8,17 @@
 
 #import "EKAnimationTextField.h"
 
-#define DEGREES_TO_RADIANS(angle) ((angle) / 180.0 * M_PI)
 
-@interface EKAnimationTextField ()<UITextFieldDelegate>{
+@interface EKAnimationTextField ()<UITextFieldDelegate, CAAnimationDelegate>{
     CAShapeLayer *_accountLineLayer;
     CAShapeLayer *_tickLineLayer;
     CAShapeLayer *_passwordLineLayer;
+    CAShapeLayer *_loadingLayer;
+    CAShapeLayer *_circlelayer;
+    
 }
+
+@property (nonatomic, strong) UIView *loadingView;
 
 @end
 
@@ -50,7 +54,7 @@
         _accountLineLayer.hidden = NO;
         _passwordLineLayer.hidden = YES;
         
-        [self addCABasicAnimation:_accountLineLayer keyPath:@"strokeEnd" fromValue:@0.0 toValue:@1.0 duration:0.4f];
+        [EKAnimationTextField addCABasicAnimation:_accountLineLayer keyPath:@"strokeEnd" fromValue:@0.0 toValue:@1.0 duration:0.4f autoreverses:NO repeatCount:1 timingFunction:kCAMediaTimingFunctionEaseInEaseOut delegate:nil animationKey:nil];
         
     }
     if (textField == _passwordField) {
@@ -58,9 +62,9 @@
         _accountLineLayer.hidden = YES;
         _passwordLineLayer.hidden = NO;
         
-        [self addCABasicAnimation:_passwordLineLayer keyPath:@"strokeStart" fromValue:@0.0 toValue:@0.58 duration:0.5f];
+        [EKAnimationTextField addCABasicAnimation:_passwordLineLayer keyPath:@"strokeStart" fromValue:@0.0 toValue:@0.58 duration:0.5f autoreverses:NO repeatCount:1 timingFunction:kCAMediaTimingFunctionEaseInEaseOut delegate:nil animationKey:nil];
         
-        [self addCABasicAnimation:_passwordLineLayer keyPath:@"strokeEnd" fromValue:@0.0 toValue:@1.0 duration:0.4f];
+        [EKAnimationTextField addCABasicAnimation:_passwordLineLayer keyPath:@"strokeEnd" fromValue:@0.0 toValue:@1.0 duration:0.4f autoreverses:NO repeatCount:1 timingFunction:kCAMediaTimingFunctionEaseInEaseOut delegate:nil animationKey:nil];
         
     }
 }
@@ -72,9 +76,9 @@
         
         _tickLineLayer.hidden = NO;
         
-        [self addCABasicAnimation:_tickLineLayer keyPath:@"strokeStart" fromValue:@0.0 toValue:@0.82 duration:0.4f];
+        [EKAnimationTextField addCABasicAnimation:_tickLineLayer keyPath:@"strokeStart" fromValue:@0.0 toValue:@0.82 duration:0.5f autoreverses:NO repeatCount:1 timingFunction:kCAMediaTimingFunctionEaseInEaseOut delegate:nil animationKey:nil];
         
-        [self addCABasicAnimation:_tickLineLayer keyPath:@"strokeEnd" fromValue:@0.0 toValue:@1.0 duration:0.3f];
+        [EKAnimationTextField addCABasicAnimation:_tickLineLayer keyPath:@"strokeEnd" fromValue:@0.0 toValue:@1.0 duration:0.4f autoreverses:NO repeatCount:1 timingFunction:kCAMediaTimingFunctionEaseInEaseOut delegate:nil animationKey:nil];
         
     }
 }
@@ -84,8 +88,8 @@
     if (textField == _accountField) {
         if (textField.text.length == 1 && string.length == 0) {
             //none text, cancel _tickLineLayer
-            [self addCABasicAnimation:_tickLineLayer keyPath:@"strokeEnd" fromValue:@1.0 toValue:@0.0 duration:0.5f];
-            [self addCABasicAnimation:_tickLineLayer keyPath:@"strokeStart" fromValue:@0.82 toValue:@0.0 duration:0.3f];
+            [EKAnimationTextField addCABasicAnimation:_tickLineLayer keyPath:@"strokeEnd" fromValue:@1.0 toValue:@0.0 duration:0.5f autoreverses:NO repeatCount:1 timingFunction:kCAMediaTimingFunctionEaseInEaseOut delegate:nil animationKey:nil];
+            [EKAnimationTextField addCABasicAnimation:_tickLineLayer keyPath:@"strokeStart" fromValue:@0.82 toValue:@0.0 duration:0.3f autoreverses:NO repeatCount:1 timingFunction:kCAMediaTimingFunctionEaseInEaseOut delegate:nil animationKey:nil];
 
         }
     }
@@ -100,23 +104,59 @@
     return YES;
 }
 
+#pragma mark - loadingAnimation
+
+- (void)showLoadingAnimation {
+    
+    [UIView animateWithDuration:0.2f animations:^{
+        self.loadingView.alpha = 1;
+        
+    }];
+    
+    [EKAnimationTextField addCABasicAnimation:_loadingLayer keyPath:@"strokeStart" fromValue:@0.0 toValue:@1.1 duration:0.4f autoreverses:NO repeatCount:1 timingFunction:kCAMediaTimingFunctionEaseIn delegate:self animationKey:@"loadingLayerStrokeStart"];
+
+    
+}
+
+- (void)hideLoadingAnimation {
+    
+    self.loadingView.alpha = 0;
+    [self.loadingView.layer removeAllAnimations];
+    
+}
+
+- (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
+    if (anim == [_loadingLayer animationForKey:@"loadingLayerStrokeStart"]) {
+        
+        [EKAnimationTextField addCABasicAnimation:_circlelayer keyPath:@"transform.scale" fromValue:@0.8 toValue:@1.3 duration:0.5f autoreverses:YES repeatCount:MAXFLOAT timingFunction:kCAMediaTimingFunctionLinear delegate:nil animationKey:nil];
+        
+    }
+}
 
 #pragma mark - initMethod
 
-- (void)addCABasicAnimation:(CALayer *)animationLayer
++ (void)addCABasicAnimation:(CALayer *)animationLayer
                     keyPath:(NSString *)keyPath
                   fromValue:(id)fromValue
                     toValue:(id)toValue
                    duration:(CGFloat)duration
+               autoreverses:(BOOL)autoreverses
+                repeatCount:(CGFloat)repeatCount
+             timingFunction:(NSString *)timingFunction
+                   delegate:(id <CAAnimationDelegate>)delegate
+               animationKey:(NSString *)animationKey
 {
-    CABasicAnimation *animation_1 = [CABasicAnimation animationWithKeyPath:keyPath];
-    animation_1.fillMode = kCAFillModeForwards;
-    animation_1.removedOnCompletion = NO;
-    animation_1.duration = duration;
-    animation_1.fromValue = fromValue;
-    animation_1.toValue = toValue;
-    animation_1.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-    [animationLayer addAnimation:animation_1 forKey:nil];
+    CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:keyPath];
+    animation.fillMode = kCAFillModeForwards;
+    animation.removedOnCompletion = NO;
+    animation.duration = duration;
+    animation.fromValue = fromValue;
+    animation.toValue = toValue;
+    animation.repeatCount = repeatCount;
+    animation.autoreverses = autoreverses;
+    animation.delegate = delegate;
+    animation.timingFunction = [CAMediaTimingFunction functionWithName:timingFunction];
+    [animationLayer addAnimation:animation forKey:animationKey];
 }
 
 - (CAShapeLayer *)createLineShapeLayer {
@@ -181,6 +221,7 @@
     [self.layer addSublayer:_accountLineLayer];
     [self.layer addSublayer:_tickLineLayer];
     [self.layer addSublayer:_passwordLineLayer];
+    
 }
 
 - (UITextField *)accountField {
@@ -207,5 +248,44 @@
     return _passwordField;
 }
 
+- (UIView *)loadingView {
+    if (!_loadingView) {
+        _loadingView = [[UIView alloc] initWithFrame:[UIScreen mainScreen].bounds];
+        _loadingView.backgroundColor = [UIColor whiteColor];
+        
+        _loadingLayer = [self createLineShapeLayer];
+        _circlelayer = [self createLineShapeLayer];
+        
+        UIBezierPath *loadingPath = [UIBezierPath bezierPath];
+        [loadingPath moveToPoint:CGPointMake(187.5, 511)];
+        [loadingPath addLineToPoint:CGPointMake(70, 511)];
+        
+        UIBezierPath *circlePath = [UIBezierPath bezierPath];
+        [circlePath addArcWithCenter:CGPointMake(70, 471) radius:40 startAngle:M_PI_2 endAngle:DEGREES_TO_RADIANS(180) clockwise:YES];
+        [loadingPath appendPath:circlePath];
+        
+        UIBezierPath *circlePath2 = [UIBezierPath bezierPath];
+        [circlePath2 addArcWithCenter:CGPointMake(187.5, 471) radius:157.5 startAngle:M_PI endAngle:M_PI_2*3 clockwise:YES];
+        [loadingPath appendPath:circlePath2];
+        
+        _loadingLayer.path = loadingPath.CGPath;
+        
+        UIBezierPath *circlePath3 = [UIBezierPath bezierPath];
+        //    [circlePath3 addArcWithCenter:CGPointMake(0, 0) radius:20 startAngle:M_PI_2*3 endAngle:M_PI_2*6 clockwise:YES];
+        [circlePath3 addArcWithCenter:CGPointMake(0, 0) radius:20 startAngle:0 endAngle:M_PI*2 clockwise:YES];
+        
+        _circlelayer.path = circlePath3.CGPath;
+        _circlelayer.position = _loadingView.center;
+        _circlelayer.hidden = NO;
+        _loadingLayer.hidden = NO;
+        [_loadingView.layer addSublayer:_circlelayer];
+        [_loadingView.layer addSublayer:_loadingLayer];
+        
+        [[UIApplication sharedApplication].keyWindow addSubview:_loadingView];
+        
+        _loadingView.alpha = 0;
+    }
+    return _loadingView;
+}
 
 @end
